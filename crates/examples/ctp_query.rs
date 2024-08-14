@@ -20,14 +20,14 @@ async fn main() {
     // let trade_front = "tcp://180.168.146.187:10130"; // 7*24
     let account = TradingAccountConfig {
         broker_id: "9999".to_string(),
-        account: "143650".to_string(),
-        trade_fronts: vec!["tcp://180.168.146.187:10201".to_string()],
-        md_fronts: vec!["180.168.146.187:10211".to_string()],
+        account: "227375".to_string(),
+        trade_fronts: vec!["tcp://180.168.146.187:10130".to_string()],
+        md_fronts: vec!["tcp://180.168.146.187:10131".to_string()],
         name_servers: vec![],
         auth_code: "0000000000000000".to_string(),
         user_product_info: "".to_string(),
         app_id: "simnow_client_test".to_string(),
-        password: "198612".to_string(),
+        password: "Whale18814844533%".to_string(),
         remark: "".into(),
         fens_md_fronts: vec![],
         fens_trade_fronts: vec![],

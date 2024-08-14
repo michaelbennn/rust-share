@@ -1080,6 +1080,7 @@ pub mod query {
     use bincode::{Decode, Encode};
     use futures::StreamExt;
     use log::info;
+    use state::{DirectionType, InputOrderActionField, InputOrderField, TraderApiType};
     use std::ffi::CString;
 
     /// 查询结果
@@ -1138,6 +1139,9 @@ pub mod query {
         let mut result = CtpQueryResult::default();
         result.broker_id = broker_id.to_string();
         result.account = account.to_string();
+        
+        // 登录数据存储
+        let mut login_result = InputOrderActionField::default();
         // 处理登陆初始化查询
         while let Some(spi_msg) = stream.next().await {
             use trader_api::CThostFtdcTraderSpiOutput::*;
@@ -1172,6 +1176,10 @@ pub mod query {
                     if p.p_rsp_info.as_ref().unwrap().ErrorID == 0 {
                         let u = p.p_rsp_user_login.unwrap();
                         result.trading_day = trading_day_from_ctp_trading_day(&u.TradingDay);
+
+                        // 存储登录数据
+                        login_result.front_id = u.FrontID;
+                        login_result.session_id = u.SessionID;
                     } else {
                         info!("Trade RspUserLogin = {:?}", print_rsp_info!(&p.p_rsp_info));
                     }
@@ -1184,14 +1192,92 @@ pub mod query {
                     }
                 }
                 OnRspSettlementInfoConfirm(ref _p) => {
-                    let mut req = CThostFtdcQryTradingAccountField::default();
-                    set_cstr_from_str_truncate_i8(&mut req.BrokerID, broker_id);
-                    set_cstr_from_str_truncate_i8(&mut req.InvestorID, account);
-                    let result = api.req_qry_trading_account(&mut req, get_request_id());
-                    if result != 0 {
-                        info!("ReqQueryTradingAccount={}", result);
+
+                    // 委托 限价单：SA409 开多 1手 价格1658.0
+                    let _ = api.req_order_insert(
+                        broker_id,
+                        account,
+                        "",
+                        "SA409",
+                        &InputOrderField {
+                            direction: DirectionType::Long,
+                            offset: state::OffsetFlag::Open,
+                            price: 1658.0,
+                            volume: 1,
+                        },
+                        1,
+                        0,
+                        &vec![],
+                    );
+                    
+                    // 委托 撤单
+                    let _ = api.req_order_action(
+                        broker_id,
+                        account,
+                        "",
+                        "SA409",
+                        &InputOrderActionField {
+                            front_id: login_result.front_id,
+                            session_id: login_result.session_id,
+                            order_ref: login_result.order_ref,
+                        },
+                        0,
+                        get_request_id(),
+                    );
+
+
+                    // let mut req = CThostFtdcQryTradingAccountField::default();
+                    // set_cstr_from_str_truncate_i8(&mut req.BrokerID, broker_id);
+                    // set_cstr_from_str_truncate_i8(&mut req.InvestorID, account);
+                    // let result = api.req_qry_trading_account(&mut req, get_request_id());
+                    // if result != 0 {
+                    //     info!("ReqQueryTradingAccount={}", result);
+                    // }
+                }
+                // 报单回报
+                OnRspOrderInsert(ref p) => {
+                    if let Some(info) = p.p_rsp_info {
+                        info!(
+                            "OnRspOrderInsert ErrorID={}, ErrorMsg={}",
+                            info.ErrorID,
+                            get_ascii_str(&info.ErrorMsg).unwrap().to_string()
+                        );
+                    }
+                    if let Some(order) = p.p_input_order {
+                        // 存储报单数据
+                        login_result.order_ref = order.OrderRef.clone();
+                        info!(
+                            "OnRspOrderInsert: {}, {}, {}, {}",
+                            gb18030_cstr_to_str_i8(&order.InstrumentID),
+                            gb18030_cstr_to_str_i8(&order.OrderRef),
+                            gb18030_cstr_to_str_i8(&order.ExchangeID),
+                            order.LimitPrice
+                        );
                     }
                 }
+                // 委托回报
+                OnRtnOrder(ref p) => {
+                    if let Some(info) = p.p_order {
+                        info!(
+                            "OnRtnOrder: {}, {}, {}, {}",
+                            gb18030_cstr_to_str_i8(&info.InstrumentID),
+                            gb18030_cstr_to_str_i8(&info.OrderRef),
+                            gb18030_cstr_to_str_i8(&info.ExchangeID),
+                            info.LimitPrice
+                        );
+                    }
+                }
+                // 成交回报
+                OnRtnTrade(ref p) => {
+                    if let Some(info) = p.p_trade {
+                        info!(
+                            "OnRtnTrade: {}, {}",
+                            gb18030_cstr_to_str_i8(&info.InstrumentID),
+                            info.Volume
+                        );
+                    }
+                }
+
                 OnRspQryTradingAccount(ref p) => {
                     if let Some(taf) = p.p_trading_account {
                         result.trading_account = taf;

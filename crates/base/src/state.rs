@@ -430,7 +430,7 @@ pub struct InputOrderField {
 }
 
 /// 发送撤单
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct InputOrderActionField {
     pub front_id: i32,
     pub session_id: i32,

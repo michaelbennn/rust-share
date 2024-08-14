@@ -8,6 +8,7 @@
 * app/log_pump 简单的消息推送
 
 ### 说明
+* 如果在ubuntu上安装clang，需要首先apt-get update 和 apt-get upgrade，然后通过apt-get install clang-15即可。15.0.7版本才可以运行当前的rust代码。
 * 编译过程中会用到clang(15.0.7), 需要手动下载安装对应的依赖, [下载](https://github.com/llvm/llvm-project/releases/tag/llvmorg-15.0.7)
 * 仅在ubuntu 20.04 和 windows11 上编译测试过
 
