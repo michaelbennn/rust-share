@@ -53,6 +53,7 @@ curl -X POST \
 * close_priority 用于指定优先平仓顺序，因为某些情况下平昨和平今的手续费不一样
 
 
-### 交流
+### BUG 修复
 
-* 微信号 string_io
+使用vscode的rust-analyzer插件，会报错  `tokio::main: proc-macro crate is missing its build datarust-analyzermacro-error，`
+需要在设置扩展为     "rust-analyzer.cargo.features": ["full"],
