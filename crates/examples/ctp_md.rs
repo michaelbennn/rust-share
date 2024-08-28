@@ -20,8 +20,8 @@ async fn main() {
     let account = CtpAccountConfig {
         broker_id: "9999".to_string(),
         account: "143650".to_string(),
-        trade_fronts: vec!["tcp://180.168.146.187:10201".to_string()],
-        md_fronts: vec!["tcp://180.168.146.187:10211".to_string()],
+        trade_fronts: vec!["tcp://180.168.146.187:10131".to_string()],
+        md_fronts: vec!["tcp://180.168.146.187:10131".to_string()],
         // md_fronts: vec!["tcp://180.168.146.187:10131".to_string()],
         name_servers: vec!["".to_string()],
         auth_code: "0000000000000000".to_string(),

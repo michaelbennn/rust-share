@@ -53,7 +53,12 @@ curl -X POST \
 * close_priority 用于指定优先平仓顺序，因为某些情况下平昨和平今的手续费不一样
 
 
+### 计划
+第一步需要参考ctp_trade.rs，在examples目录下实现策略的功能，然后直接使用cargo run的形式运行编译文件。
+未来可能需要将ctp相关的交易模块编译为一个动态链接库，然后编写rust策略调用。
+
 ### BUG 修复
 
 使用vscode的rust-analyzer插件，会报错  `tokio::main: proc-macro crate is missing its build datarust-analyzermacro-error，`
-需要在设置扩展为     "rust-analyzer.cargo.features": ["full"],
+需要在设置扩展为     "rust-analyzer.cargo.features": ["full"], 但是这也会有一个问题，就是自定义的各种方法，不能通过鼠标点击+Ctrl跳转到定义
+

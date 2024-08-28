@@ -21,8 +21,8 @@ async fn main() {
     let account = TradingAccountConfig {
         broker_id: "9999".to_string(),
         account: "227375".to_string(),
-        trade_fronts: vec!["tcp://180.168.146.187:10130".to_string()],
-        md_fronts: vec!["tcp://180.168.146.187:10131".to_string()],
+        trade_fronts: vec!["tcp://180.168.146.187:10202".to_string()],
+        md_fronts: vec!["tcp://180.168.146.187:10212".to_string()],
         name_servers: vec![],
         auth_code: "0000000000000000".to_string(),
         user_product_info: "".to_string(),
