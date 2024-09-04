@@ -868,6 +868,30 @@ pub mod route {
                     if is_last {
                         if let Some((req_msg, rsp_tx, response_packets)) = query_req.take() {
                             let config = bincode::config::standard();
+                            println!("thisis {:?}", response_packets);
+                            // if let Some(trading_account) = response_packets.p_trading_account{
+                            //     let broker_id = String::from_utf8_lossy(&trading_account.BrokerID);
+                            //     let account_id = String::from_utf8_lossy(&trading_account.AccountID);
+                                
+                            //     println!("BrokerID: {}", broker_id.trim_end_matches(char::from(0)));
+                            //     println!("AccountID: {}", account_id.trim_end_matches(char::from(0)));
+                            // }
+                            // use base::util::*;
+                            // for packet in response_packets.clone() {
+                            //     match packet {
+                            //         OnRspQryTradingAccount(packet) => {
+                            //             if let Some(trading_account) = packet.p_trading_account {
+                            //                 println!("BrokerID: {:?}", gb18030_cstr_to_str_i8(&trading_account.BrokerID));
+                            //                 println!("AccountID: {:?}", gb18030_cstr_to_str_i8(&trading_account.AccountID));
+                            //                 // 打印其他字段...
+                            //             } else {
+                            //                 println!("p_trading_account is None");
+                            //             }
+                            //         }
+                            //         _ => {}
+                            //     }
+                            // };
+
                             let encoded: Vec<u8> = bincode::encode_to_vec(&response_packets, config).unwrap();
                             if let Err(_) = rsp_tx.send(Ok(encoded)) {
                                 error!("the receiver droped");

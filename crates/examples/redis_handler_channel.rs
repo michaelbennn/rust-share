@@ -10,8 +10,8 @@ pub struct MarketData {
     pub instrument_id: String,
     pub last_price: f64,
     volume: f64,
-    update_time: String,
-    publish_time: String
+    pub update_time: String,
+    pub publish_time: String
 }
 
 pub fn subscribe_to_channels(channels: Vec<&str>) -> Result<Vec<mpsc::Receiver<MarketData>>, redis::RedisError> {

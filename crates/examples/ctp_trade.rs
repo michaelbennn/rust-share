@@ -73,41 +73,12 @@
 //     redis_handler_channel::subscribe_to_ticker(&mut client, contract).await.unwrap();
 // }
 
-
-
-// use std::thread;
-// use redis::RedisError;
-// mod redis_handler_channel;
-
-// pub fn init_logger() {
-//     if std::env::var("RUST_LOG").is_err() {
-//         std::env::set_var("RUST_LOG", "info")
-//     }
-//     tracing_subscriber::fmt::init();
-// }
-
-// fn main() -> Result<(), RedisError> {
-//     let channels = vec!["market:IC2409", "market:lc2411"];
-//     let receivers = redis_handler_channel::subscribe_to_channels(channels)?;
-
-//     for (i, receiver) in receivers.into_iter().enumerate() {
-//         thread::spawn(move || {
-//             for received in receiver {
-//                 println!("Received on channel {}: {}", i, received);
-//             }
-//         });
-//     }
-
-//     // Keep the main thread alive
-//     loop {
-//         thread::sleep(::std::time::Duration::from_secs(1));
-//     }
-// }
-
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
-// use futures::channel::mpsc;
+use std::time::Duration as StdDuration;
+use arbitrage_strategies::ArbitrageStrategy;
+use chrono::{DateTime, Duration, FixedOffset, Utc, NaiveDateTime};
 use redis::RedisError;
 mod redis_handler_channel;
 mod arbitrage_strategies;
@@ -119,7 +90,12 @@ mod arbitrage_strategies;
 // use simple_logger::SimpleLogger;
 
 fn main() -> Result<(), RedisError> {
-    let channels = vec!["market:IC2409", "market:lc2411"];
+
+    /************************************************************************************************
+     * ********************************* 获取合约行情数据 *********************************************
+     * **********************************************************************************************
+     */
+    let channels = vec!["market:IC2409", "market:IC2410"];
     let receivers = redis_handler_channel::subscribe_to_channels(channels)?;
     
     // // 定义两个变量用于存储最新的两个合约价格
@@ -130,12 +106,22 @@ fn main() -> Result<(), RedisError> {
     let last_price_ic = Arc::new(Mutex::new(None::<f64>));
     let last_price_lc = Arc::new(Mutex::new(None::<f64>));
 
+    // 定义两个变量用于存储最新的两个合约时间戳
+     // 定义两个变量用于存储最新的更新时间
+     let publish_time_ic = Arc::new(Mutex::new(String::new()));
+     let publish_time_lc = Arc::new(Mutex::new(String::new()));
+
+
     // 创建一个通道用于通知主线程更新价格
     let (tx, rx) = mpsc::channel();
 
-    for (i, receiver) in receivers.into_iter().enumerate() {
+    for (_i, receiver) in receivers.into_iter().enumerate() {
         let last_price_ic = Arc::clone(&last_price_ic);
         let last_price_lc = Arc::clone(&last_price_lc);
+
+        let publish_time_ic = Arc::clone(&publish_time_ic);
+        let publish_time_lc = Arc::clone(&publish_time_lc);
+
         let tx = tx.clone();
 
         thread::spawn(move || {
@@ -143,9 +129,13 @@ fn main() -> Result<(), RedisError> {
                 if data.instrument_id == "IC2409" {
                     let mut price = last_price_ic.lock().unwrap();
                     *price = Some(data.last_price);
-                } else if data.instrument_id == "lc2411" {
+                    let mut publish_time = publish_time_ic.lock().unwrap();
+                    *publish_time = data.publish_time;
+                } else if data.instrument_id == "IC2410" {
                     let mut price = last_price_lc.lock().unwrap();
                     *price = Some(data.last_price);
+                    let mut publish_time = publish_time_lc.lock().unwrap();
+                    *publish_time = data.publish_time;
                 }
                 // 通知主线程更新价格
                 tx.send(()).unwrap();
@@ -153,45 +143,42 @@ fn main() -> Result<(), RedisError> {
         });
     }
 
+    /************************************************************************************************
+     **************************************** 初始化套利策略 ******************************************  
+     ************************************************************************************************ 
+     */
+    let arbitrage_strategies = ArbitrageStrategy::new(
+        0.5, // 下单价差要求
+        0.2, // 对手价成交价差要求
+        Duration::seconds(5), // 对手价成交时间要求(秒)
+        30, // 下单总量
+        10, // 单次下单量
+        StdDuration::from_secs(1), // 下单时间间隔(秒)
+        Duration::seconds(20), // 风控时间要求(秒)
+    );
 
-
-
-
-    // let (tx, rx) = mpsc::channel(2);
-    // let tx1 = tx.clone();
-
-    // for (i, receiver) in receivers.into_iter().enumerate() {
-    //     thread::spawn(move || {
-    //         for data in receiver {
-    //             // println!("Received on channel {}: {}", i, received);
-    //             // // 解析接收到的消息，提取LastPrice
-    //             // let market_data: Result<redis_handler_channel::MarketData, _> = serde_json::from_str(&received);
-    //             // println!("received market data: {:?}", market_data)
-    //             if data.instrument_id == "IC2409" {
-    //                 last_price_ic = Some(data.last_price);
-    //             } else if data.instrument_id == "lc2411" {
-    //                 last_price_lc = Some(data.last_price);
-    //             }
-    //             println!("Received on : IC2409:{:?}, lc2411:{:?}", last_price_ic, last_price_lc);
-    //             // match received {
-    //             //     Ok(data) => {
-    //             //         // println!("Received on : {:?}, {}", data, received);
-    //             //     }
-    //             //     Err(e) => {
-    //             //         eprintln!("Failed to parse JSON: {}", e);
-    //             //     }
-    //             // }
-
-    //         }
-    //     });
-    // }
 
     // 主线程监控和打印最新价格
     loop {
         rx.recv().unwrap(); // 等待更新通知
         let ic_price = last_price_ic.lock().unwrap();
         let lc_price = last_price_lc.lock().unwrap();
-        println!("IC2409:{:?}, lc2411:{:?}", ic_price, lc_price);
-        // thread::sleep(::std::time::Duration::from_secs(1));
+        println!("IC2409:{:?}, IC2410:{:?}", ic_price, lc_price);
+
+        let ic_publish_time = publish_time_ic.lock().unwrap();
+        let lc_publish_time = publish_time_lc.lock().unwrap();
+        println!("IC2409 publish_time:{:?}, IC2410 publish_time:{:?}", ic_publish_time, lc_publish_time);
+        // thread::sleep(::std::time::Duration::from_secs(1)); // 上述代码，只要有更新便会立即打印一次，而加上这句后会有一些数据卡顿在队列中。更新速度小于1s
+        if ic_price.is_none() || lc_price.is_none() || ic_publish_time.is_empty() || lc_publish_time.is_empty() {
+            continue;
+        }
+
+        // 转为时间类型
+        let ic_timestamp  = DateTime::from_naive_utc_and_offset(NaiveDateTime::parse_from_str(&ic_publish_time , "%Y-%m-%d %H:%M:%S%.f").expect("Failed to parse ic_publish_time"), FixedOffset::east_opt(0).unwrap());
+        let lc_timestamp  = DateTime::from_naive_utc_and_offset(NaiveDateTime::parse_from_str(&lc_publish_time , "%Y-%m-%d %H:%M:%S%.f").expect("Failed to parse lc_publish_time"), FixedOffset::east_opt(0).unwrap());
+        
+        // 执行套利策略
+        arbitrage_strategies.execute(ic_price.unwrap(), ic_timestamp, lc_price.unwrap(), lc_timestamp);
+        return Ok(());
     }
 }

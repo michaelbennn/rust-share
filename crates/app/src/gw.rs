@@ -82,7 +82,7 @@ async fn main() {
     let conf = GatewayConfig::load(&opts.config).unwrap();
     let mut ve = vec![];
     for e in conf.executors.into_iter().filter(|x| x.enabled) {
-        info!("{:?}", e);
+        info!("This is {:?}", e);
         let (tx, rx) = oneshot::channel::<i32>();
         ve.push(rx);
         let logger_config = conf.logger.clone();

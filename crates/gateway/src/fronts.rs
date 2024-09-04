@@ -7,11 +7,13 @@ pub mod http {
         Router,
     };
     use base::state::ReqMessage;
+    use ctp_futures::{CThostFtdcReqApiHandshakeField, CThostFtdcTradingAccountField};
     use log::{error, info, warn};
     use std::net::SocketAddr;
     use std::sync::Arc;
     use tokio::sync::Mutex;
     use types::*;
+    use base64::prelude::*;
 
     #[derive(Debug, derive_more::Display, derive_more::From)]
     pub enum Error {
@@ -197,13 +199,60 @@ pub mod http {
         Json(req): Json<ReqQueryTradingAccount>,
     ) -> Result<XResponse<String>, Error> {
         let req_msg = ReqMessage::QueryTradingAccount;
+        println!("query_trading_account={:?}", req_msg);
         let resp = s
             .executor
             .lock()
             .await
             .query(&req.account, req_msg)
             .await??;
+        use base::util::*;
+        use ctp_futures::trader_api::CThostFtdcTraderSpiOutput::*;
+        // 使用bincode进行解码
+        let config = bincode::config::standard();
+        let decode: (Vec<ctp_futures::trader_api::CThostFtdcTraderSpiOutput>, usize)   = bincode::decode_from_slice(&resp, config).expect("Failed to decode with bincode");
+
+        let (account_field, _size) = decode;
+        for packet in account_field.clone() {
+            match packet {
+                OnRspQryTradingAccount(packet) => {
+                    if let Some(trading_account) = packet.p_trading_account {
+                        println!("BrorID: {:?}", gb18030_cstr_to_str_i8(&trading_account.BrokerID));
+                        println!("AccountID: {:?}", gb18030_cstr_to_str_i8(&trading_account.AccountID));
+                        // 打印其他字段...
+                    } else {
+                        println!("p_trading_account is None");
+                    }
+                }
+                _ => {}
+            }
+        };
+        // let account_id = account_field.AccountID;
+        // use base::util::*;
+        // println!("This is usize: {} ", _size);
+        // println!(
+        //     "查询账户资金完成.  account={} trading_day={}",
+        //     account_field.PreBalance,
+        //     account_field.PreDeposit,
+        // );
+        // println!("query_trading_account resp={:?}", resp);
+        // // 解析响应数据
+        // let response_data: XResponse<String> = serde_json::from_slice(&resp).map_err(|_| Error::BaseErr(base::error::Error::InvalidJson))?;
+
+        // // 打印响应数据
+        // println!("打印响应数据{:?}", response_data);
+
+        // // 检查 code 字段
+        // assert_eq!(response_data.code, 0);
+        // assert_eq!(response_data.msg, "");
+
+        // // 解码 Base64 数据
+        // let decoded_data = BASE64_STANDARD.decode(&response_data.data).expect("Failed to decode Base64 data");
+
+        // // 打印解码后的数据
+        // println!("这是解码后的数据: {:?}", decoded_data);
         Ok(XResponse::<String>::from(&resp))
+
     }
 
     async fn query_position_detail(

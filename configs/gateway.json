@@ -15,35 +15,35 @@
 			"accounts": [
 				{
 					"broker_id": "9999",
-					"account": "143650",
+					"account": "227375",
 					"trade_fronts": [
-						"tcp://180.168.146.187:10201"
+						"tcp://180.168.146.187:10130"
 					],
 					"md_fronts": [
-						"tcp://180.168.146.187:10211"
+						"tcp://180.168.146.187:10131"
 					],
 					"name_servers": [],
 					"auth_code": "0000000000000000",
 					"user_product_info": "",
 					"app_id": "simnow_client_test",
-					"password": "198612",
+					"password": "Whale18814844533%",
 					"remark": "Simnow 测试账号"
 				}
 			],
 			"md_account": {
 				"broker_id": "9999",
-				"account": "143650",
+				"account": "227375",
 				"trade_fronts": [
-					"tcp://180.168.146.187:10201"
+					"tcp://180.168.146.187:10130"
 				],
 				"md_fronts": [
-					"tcp://180.168.146.187:10211"
+					"tcp://180.168.146.187:10131"
 				],
 				"name_servers": [],
 				"auth_code": "0000000000000000",
 				"user_product_info": "",
 				"app_id": "simnow_client_test",
-				"password": "198612",
+				"password": "Whale18814844533%",
 				"remark": "Simnow 测试账号, 用于接收行情"
 			}
 		}
