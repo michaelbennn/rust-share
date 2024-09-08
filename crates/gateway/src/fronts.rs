@@ -227,30 +227,6 @@ pub mod http {
                 _ => {}
             }
         };
-        // let account_id = account_field.AccountID;
-        // use base::util::*;
-        // println!("This is usize: {} ", _size);
-        // println!(
-        //     "查询账户资金完成.  account={} trading_day={}",
-        //     account_field.PreBalance,
-        //     account_field.PreDeposit,
-        // );
-        // println!("query_trading_account resp={:?}", resp);
-        // // 解析响应数据
-        // let response_data: XResponse<String> = serde_json::from_slice(&resp).map_err(|_| Error::BaseErr(base::error::Error::InvalidJson))?;
-
-        // // 打印响应数据
-        // println!("打印响应数据{:?}", response_data);
-
-        // // 检查 code 字段
-        // assert_eq!(response_data.code, 0);
-        // assert_eq!(response_data.msg, "");
-
-        // // 解码 Base64 数据
-        // let decoded_data = BASE64_STANDARD.decode(&response_data.data).expect("Failed to decode Base64 data");
-
-        // // 打印解码后的数据
-        // println!("这是解码后的数据: {:?}", decoded_data);
         Ok(XResponse::<String>::from(&resp))
 
     }
